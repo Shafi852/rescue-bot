@@ -370,6 +370,11 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
                     <div class="sensor-value" id="humidityValue">45</div>
                     <div class="sensor-label">Humidity (%)</div>
                 </div>
+                <div class="sensor-card">
+                    <div class="sensor-value" id="gasValue">45</div>
+                    <div class="sensor-label">Gas </div>
+                </div>
+                
             </div>
         </div>
     </div>
@@ -426,17 +431,26 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
         .catch(err => {
             console.error('Error fetching sensor data:', err);
         });
-           fetch('/sensor2')
+        fetch('/sensor2')
         .then(response => response.json())
         .then(data => {
             document.getElementById('tempValue').textContent = data.sensor_value.toFixed(2);
         })
         .catch(err => {
             console.error('Error fetching sensor data:', err);
-        });   fetch('/sensor3')
+        });   
+        fetch('/sensor3')
         .then(response => response.json())
         .then(data => {
             document.getElementById('humidityValue').textContent = data.sensor_value.toFixed(2);
+        })
+        .catch(err => {
+            console.error('Error fetching sensor data:', err);
+        });
+        fetch('/sensor4')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('gasValue').textContent = data.sensor_value.toFixed(2);
         })
         .catch(err => {
             console.error('Error fetching sensor data:', err);
@@ -543,6 +557,14 @@ static esp_err_t stream_handler(httpd_req_t *req){
 static esp_err_t sensor_handler3(httpd_req_t *req) {
     char response[32];
     float sensorValue = humidity;
+    snprintf(response, sizeof(response), "{\"sensor_value\": %.2f}", sensorValue);
+
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_send(req, response, strlen(response));
+}
+static esp_err_t sensor_handler4(httpd_req_t *req) {
+    char response[32];
+    float sensorValue = gas;
     snprintf(response, sizeof(response), "{\"sensor_value\": %.2f}", sensorValue);
 
     httpd_resp_set_type(req, "application/json");
@@ -728,26 +750,33 @@ httpd_uri_t servo1_uri = {
   };
 
 //SENSOR DATA
-
   httpd_uri_t depth_sensor_uri = {
     .uri       = "/sensor1",
     .method    = HTTP_GET,
     .handler   = sensor_handler1,
-    .user_ctx  = NULL};
+    .user_ctx  = NULL
+    };
 
   httpd_uri_t temp_sensor_uri = {
     .uri       = "/sensor2",
     .method    = HTTP_GET,
     .handler   = sensor_handler2,
-    .user_ctx  = NULL};
+    .user_ctx  = NULL
+    };
 
   httpd_uri_t humidity_sensor_uri = {
     .uri       = "/sensor3",
     .method    = HTTP_GET,
     .handler   = sensor_handler3,
     .user_ctx  = NULL
-
-};
+    };
+    
+  httpd_uri_t gas_sensor_uri = {
+    .uri       = "/sensor4",
+    .method    = HTTP_GET,
+    .handler   = sensor_handler4,
+    .user_ctx  = NULL
+    };
 
 
 
@@ -758,6 +787,8 @@ httpd_uri_t servo1_uri = {
     httpd_register_uri_handler(camera_httpd, &depth_sensor_uri);
     httpd_register_uri_handler(camera_httpd, &temp_sensor_uri);
     httpd_register_uri_handler(camera_httpd, &humidity_sensor_uri);
+    httpd_register_uri_handler(camera_httpd, &gas_sensor_uri);
+
   }
   config.server_port += 1;
   config.ctrl_port += 1;
